@@ -1,6 +1,8 @@
 #This script runs scripts against GNUGo to ascertain the challenger's rank (measuring by the handicap size, 1 stone = 1 rank)
 #GNUGo serves as a reference point here, although its rank is difficult to determine....I've seen anywhere from 9k to 5k.
 
+#AGA rules (as of May 2023) are followed, except handicap is not limited. Area scoring is used.
+
 import os
 import importlib
 import subprocess
@@ -8,10 +10,11 @@ import subprocess
 #This function provides an interface between the player script and GNUGo (which serves as the game engine)
 #It facilitates the legwork, including deciding player colors, obtaining player moves, 
 #obtaining final scores, and returning the winner (either "GNUGo" or the challenger agent's name string).
-def game(challenger, rank_difference):
+def game(challenger, challenger_rank):
 	#setup board
 	#os.system("boardsize")
 
+	rank_difference = challenger_rank - GNUGo_rank
 
 	#decide handicaps
 	if (rank_difference > 1): 	#challenger gets handicap stones
@@ -26,17 +29,17 @@ def game(challenger, rank_difference):
 		handicap = abs(rank_difference)
 		komi = 0.5
 
-	elif (rank_difference == 1):	#a 1 stone handicap would just be a regular move, so reverse komi instead
+	elif (rank_difference == 1):	#a one stone handicap would be a regular move, so reduce komi instead
 		black_player = challenger
 		white_player = "GNUGo"
 		handicap = 0
-		komi = -7.5
+		komi = 0.5
 
 	elif (rank_difference == -1):
 		black_player = "GNUGo"
 		white_player = challenger
 		handicap = 0
-		komi = -7.5
+		komi = 0.5
 
 	else: 				#are equal
 		black_player = challenger
@@ -53,7 +56,7 @@ def game(challenger, rank_difference):
 			#get move
 			#apply move
 				#check for illegality
-				#disqualify if illegal
+				#pass if illegal
 
 		#set turn_player = white
 	else:
@@ -69,7 +72,7 @@ def game(challenger, rank_difference):
 		#if passcount == 2, end game, get final score, and return winner ("GNUGo" or challenger.name), ties are impossible if komi is set properly
 		#attempt to play move
 			#check if move was legal
-			#if illegal, end game with illegal-move player as loser
+			#if illegal, treat as a pass
 		#alternate players
 
 def get_move(challenger, turn_player):
@@ -99,19 +102,18 @@ agents = [importlib.import_module(script).GoAgent() for script in scripts]
 #set up GNUGo
 GNUGo_rank = 9 #9 kyu
 result_file = open("results.txt", "w")
+gamecount = 100
 
 #run games between GNUGo and challengers
 for agent in agents:
 	results = {}
 
-	for rank in range(30, -6):
-		rankDiff = rank - GNUGo_rank
+	for challenger_rank in range(30, -6):
 		wincount = 0
-		gamecount = 100
-
+		
 		for i in range(gamecount):
 			#play games at different handicaps, find one with 50% winrate?
-			if (game(agent, rankDiff) != "GNUGo"):
+			if (game(agent, challenger_rank) != "GNUGo"):
 				wincount += 1.0
 
 			results[rank] = wincount / gamecount
