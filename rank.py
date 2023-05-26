@@ -52,31 +52,35 @@ def game(challenger, challenger_rank):
 	if handicap > 0:
 		#get n=handicap moves from black player
 		for i in range(handicap):
-			#get board_string
-			#get move
-			#apply move
-				#check for illegality
-				#pass if illegal
+			get_move(challenger, black_player)
 
-		#set turn_player = white
+		turn_player = white_player
 	else:
-		#set turn_player = black
+		turn_player = black_player
 
 
 	#do game
 	passcount = 0
 	while true:
-		#get board-string
-		#pass board-string and get move from turn player
-		#if pass, increment pass counter, else passcount = 0
+		if turn_player == white_player:
+			next_move = get_move(challenger, turn_player)
+			turn_player = black_player
+		else:
+			next_move = get_move(challenger, turn_player)
+			turn_player = white_player
+
+		if next_move == "pass":
+			passcount += 1
+		else:
+			passcount = 0
+
 		#if passcount == 2, end game, get final score, and return winner ("GNUGo" or challenger.name), ties are impossible if komi is set properly
-		#attempt to play move
-			#check if move was legal
-			#if illegal, treat as a pass
-		#alternate players
+
 
 def get_move(challenger, turn_player):
 	#get board string
+	#pass board-string and get move from turn player
+
 	if turn_player == "GNUGo":
 		#os.system("genmove " + GNUGo_color)
 		#result = subprocess.check_output("genmove " + GNUGo_color), shell=True)
@@ -86,10 +90,27 @@ def get_move(challenger, turn_player):
 		#result = subprocess.check_output("move " + challenger_color + " " + new_move, shell=True)
 
 	#check stdout to see if move was illegal
+	#if illegal, treat as a pass
 	if not result.startswith("="):
 		pass
 
 	return new_move
+
+def communicate_with_GNUGo(proc, command):
+	
+	proc.stdin.write("{}\n".format(command).encode('UTF-8'))
+	proc.stdin.flush()
+
+	output = []
+	last_read = None
+
+	while(last_read != b'\n'):
+		last_read = proc.stdout.readline()
+		output.append(last_read.decode('UTF-8').strip())
+
+	return output[:-1]
+
+proc = subprocess.Popen("gnugo-3.8/gnugo --mode gtp", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 #load list of python script names from file
 with open("challengers.txt", "r") as fh:
