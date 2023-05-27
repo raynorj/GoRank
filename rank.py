@@ -79,7 +79,15 @@ def game(challenger, challenger_rank):
 			passcount = 0
 
 		if passcount == 2:
-			#get final score, and return winner ("GNUGo" or challenger.name), ties are impossible if komi is set properly
+			#get final score
+			#return winner ("GNUGo" or challenger.name)
+			#ties are impossible if komi is set properly
+
+			final_score = score_board(komi):
+			if final_score[0] == "W":
+				return "GNUGo"
+			else:
+				return challenger.name
 
 #note: internally, it is always assumed that the challenger is black and GNUGo is white
 #practically, this should not make a difference and won't affect game(), provided that the scoring function is written correctly
@@ -97,7 +105,36 @@ def play_move(challenger, turn_player):
 	if result[0] == "? illegal move" or result[0] == "=":
 		new_move = "pass"
 
+	#check for ko?
+
 	return new_move
+
+#we assume the board has been played through completely
+def score_board(komi):
+	boardstate = get_and_parse_board()
+
+	for j in range(len(boardstate)):
+		for i in range(len(boardstate[j])):
+			if boardstate[j][i] == ".":
+				#execute recursive fill on boardstate[j][i]
+	
+	score = -komi
+	for j in range(len(boardstate)):
+		for i in range(len(boardstate[j])):
+			if boardstate[j][i] == "B":
+				score += 1
+			elif boardstate[j][i] == "W":
+				score -= 1
+
+	if score > 0:
+		return "B+" + score
+	elif score < 0:
+		return "W+" + abs(score)
+	else:
+		return "tie"
+
+def boardstate_recursive_fill(boardstate, x, y):
+	pass
 
 def get_and_parse_board():
 	board_strings = communicate_with_GNUGo("showboard")
