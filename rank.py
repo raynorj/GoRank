@@ -1,5 +1,4 @@
 #TODO
-#write board string parser
 #write game-completion logic in game()
 
 #This script runs scripts against GNUGo to ascertain the challenger's rank (measuring by the handicap size, 1 stone = 1 rank)
@@ -7,7 +6,7 @@
 
 #AGA rules (as of May 2023) are followed, except handicap is not limited. Area scoring is used.
 
-import os
+import os, re
 import importlib
 import subprocess
 
@@ -101,9 +100,19 @@ def play_move(challenger, turn_player):
 	return new_move
 
 def get_and_parse_board():
-	board_string = communicate_with_GNUGo("showboard")
+	board_strings = communicate_with_GNUGo("showboard")
+	board_arr = []
 
 	#parse board_string
+	for row in board_strings[2:-1]:
+		board_arr.append([])
+		row_data = board_regex.search(row)[0].strip()
+		for char in row_data:
+			if char != " ":
+				if char == "+":
+					board_arr[-1].append(".")
+				else:
+					board_arr[-1].append(char)					
 
 	return board_arr
 
@@ -131,6 +140,7 @@ agents = [importlib.import_module(script).GoAgent() for script in scripts]
 
 #define useful variables
 proc = subprocess.Popen("gnugo-3.8/gnugo --mode gtp", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+board_regex = re.compile("[XO\.\+\s]+")
 GNUGo_rank = 9 #9 kyu
 result_file = open("results.txt", "w")
 gamecount = 100
