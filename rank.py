@@ -1,3 +1,7 @@
+#TODO
+#write board string parser
+#write game-completion logic in game()
+
 #This script runs scripts against GNUGo to ascertain the challenger's rank (measuring by the handicap size, 1 stone = 1 rank)
 #GNUGo serves as a reference point here, although its rank is difficult to determine....I've seen anywhere from 9k to 5k.
 
@@ -10,9 +14,10 @@ import subprocess
 #This function provides an interface between the player script and GNUGo (which serves as the game engine)
 #It facilitates the legwork, including deciding player colors, obtaining player moves, 
 #obtaining final scores, and returning the winner (either "GNUGo" or the challenger agent's name string).
+
 def game(challenger, challenger_rank):
 	#setup board
-	#os.system("boardsize")
+	communicate_with_GNUGo("boardsize 19")
 
 	rank_difference = challenger_rank - GNUGo_rank
 
@@ -52,7 +57,7 @@ def game(challenger, challenger_rank):
 	if handicap > 0:
 		#get n=handicap moves from black player
 		for i in range(handicap):
-			get_move(challenger, black_player)
+			play_move(challenger, black_player)
 
 		turn_player = white_player
 	else:
@@ -63,40 +68,46 @@ def game(challenger, challenger_rank):
 	passcount = 0
 	while true:
 		if turn_player == white_player:
-			next_move = get_move(challenger, turn_player)
+			last_move = play_move(challenger, turn_player)
 			turn_player = black_player
 		else:
-			next_move = get_move(challenger, turn_player)
+			last_move = play_move(challenger, turn_player)
 			turn_player = white_player
 
-		if next_move == "pass":
+		if last_move == "pass":
 			passcount += 1
 		else:
 			passcount = 0
 
-		#if passcount == 2, end game, get final score, and return winner ("GNUGo" or challenger.name), ties are impossible if komi is set properly
+		if passcount == 2:
+			#get final score, and return winner ("GNUGo" or challenger.name), ties are impossible if komi is set properly
 
-
-def get_move(challenger, turn_player):
-	#get board string
-	#pass board-string and get move from turn player
-
+#note: internally, it is always assumed that the challenger is black and GNUGo is white
+#practically, this should not make a difference and won't affect game(), provided that the scoring function is written correctly
+def play_move(challenger, turn_player):
 	if turn_player == "GNUGo":
-		#os.system("genmove " + GNUGo_color)
-		#result = subprocess.check_output("genmove " + GNUGo_color), shell=True)
+		command = "genmove white"
+		result = communicate_with_GNUGo(command)
 	else:
-		new_move = challenger.move()
-		#os.system("move " + challenger_color + " " + new_move)
-		#result = subprocess.check_output("move " + challenger_color + " " + new_move, shell=True)
+		boardstate = get_and_parse_board()
+		new_move = challenger.move(boardstate)
+		command = "play black " + new_move
+		result = communicate_with_GNUGo(command)
 
-	#check stdout to see if move was illegal
-	#if illegal, treat as a pass
-	if not result.startswith("="):
-		pass
+	#if move is illegal or was a pass, name new_move to "pass"
+	if result[0] == "? illegal move" or result[0] == "=":
+		new_move = "pass"
 
 	return new_move
 
-def communicate_with_GNUGo(proc, command):
+def get_and_parse_board():
+	board_string = communicate_with_GNUGo("showboard")
+
+	#parse board_string
+
+	return board_arr
+
+def communicate_with_GNUGo(command):
 	
 	proc.stdin.write("{}\n".format(command).encode('UTF-8'))
 	proc.stdin.flush()
@@ -110,8 +121,6 @@ def communicate_with_GNUGo(proc, command):
 
 	return output[:-1]
 
-proc = subprocess.Popen("gnugo-3.8/gnugo --mode gtp", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
 #load list of python script names from file
 with open("challengers.txt", "r") as fh:
 	scripts = [line.strip() for line in fh.readlines()]
@@ -120,7 +129,8 @@ with open("challengers.txt", "r") as fh:
 	#class - contains name, board string parser, and move recommender
 agents = [importlib.import_module(script).GoAgent() for script in scripts]
 
-#set up GNUGo
+#define useful variables
+proc = subprocess.Popen("gnugo-3.8/gnugo --mode gtp", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 GNUGo_rank = 9 #9 kyu
 result_file = open("results.txt", "w")
 gamecount = 100
