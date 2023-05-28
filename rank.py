@@ -1,5 +1,6 @@
 #TODO
-#write game-completion logic in game()
+#write boardstate_recursive_check()
+#does GNUGo check for ko?
 
 #This script runs scripts against GNUGo to ascertain the challenger's rank (measuring by the handicap size, 1 stone = 1 rank)
 #GNUGo serves as a reference point here, although its rank is difficult to determine....I've seen anywhere from 9k to 5k.
@@ -117,6 +118,8 @@ def score_board(komi):
 		for i in range(len(boardstate[j])):
 			if boardstate[j][i] == ".":
 				#execute recursive fill on boardstate[j][i]
+				fill_type = boardstate_recursive_check(boardstate, i, j)
+				boardstate_recursive_fill(boardstate, i, j, fill_type)
 	
 	score = -komi
 	for j in range(len(boardstate)):
@@ -133,8 +136,26 @@ def score_board(komi):
 	else:
 		return "tie"
 
-def boardstate_recursive_fill(boardstate, x, y):
+#returns "W", "B", or "M"
+def boardstate_recursive_check(boardstate, x, y):
 	pass
+
+def boardstate_recursive_fill(boardstate, x, y, symbol):
+	boardstate[y][x] = symbol
+	x_size = len(boardstate[y])
+	y_size = len(boardstate)
+
+	if (x-1 >= 0) and boardstate[y][x-1] == ".":
+		boardstate_recursive_fill(boardstate, x-1, y)
+
+	if (y-1 >= 0) and boardstate[y-1][x] == ".":
+		boardstate_recursive_fill(boardstate, x, y-1)
+
+	if (x+1 < x_size) and boardstate[y][x+1] == ".":
+		boardstate_recursive_fill(boardstate, x+1, y)
+
+	if (y+1 < y_size) and boardstate[y+1][x] == ".":
+		boardstate_recursive_fill(boardstate, x, y+1)
 
 def get_and_parse_board():
 	board_strings = communicate_with_GNUGo("showboard")
