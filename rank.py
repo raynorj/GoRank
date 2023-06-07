@@ -1,6 +1,8 @@
 #TODO
 #write boardstate_recursive_check()
 #does GNUGo check for ko?
+#develop a couple bots (linear regression bot, random bot, liberty bot?)
+#checking GNU licensing requirements, am not statically linking against it, but that may not matter?
 
 #This script runs scripts against GNUGo to ascertain the challenger's rank (measuring by the handicap size, 1 stone = 1 rank)
 #GNUGo serves as a reference point here, although its rank is difficult to determine....I've seen anywhere from 9k to 5k.
@@ -118,8 +120,11 @@ def score_board(komi):
 		for i in range(len(boardstate[j])):
 			if boardstate[j][i] == ".":
 				#execute recursive fill on boardstate[j][i]
-				fill_type = boardstate_recursive_check(boardstate, i, j)
-				boardstate_recursive_fill(boardstate, i, j, fill_type)
+				perimeter_chars = list(boardstate_recursive_check(boardstate, i, j))
+				if len(perimeter_chars) == 1:
+					boardstate_recursive_fill(boardstate, i, j, perimeter_chars[0])
+				else:
+					boardstate_recursive_fill(boardstate, i, j, "M")
 	
 	score = -komi
 	for j in range(len(boardstate)):
@@ -137,8 +142,35 @@ def score_board(komi):
 		return "tie"
 
 #returns "W", "B", or "M"
-def boardstate_recursive_check(boardstate, x, y):
-	pass
+#the current solution isn't the cleanest (i.e. obeying the above criteria), but it's probably functional
+def boardstate_recursive_check(boardstate, x, y, already_checked={}):
+	x_size = len(boardstate[y])
+	y_size = len(boardstate)
+
+	if boardstate[y][x] == ".":
+		tile_check = already_checked.set_default((x,y), False)
+	else:
+		return set(boardstate[y][x])
+
+	if not tile_check:
+		already_checked[(x,y)] = True
+
+		perimeter_chars = set()
+
+		if (x-1 >= 0):
+			perimeter_chars.union(boardstate_recursive_check(boardstate, x-1, y, already_checked))
+
+		if (x+1 < x_size):
+			perimeter_chars.union(boardstate_recursive_check(boardstate, x+1, y, already_checked))
+
+		if (y-1 >= 0):
+			perimeter_chars.union(boardstate_recursive_check(boardstate, x, y-1, already_checked))
+
+		if (y+1 < y_size):
+			perimeter_chars.union(boardstate_recursive_check(boardstate, x, y+1, already_checked))
+
+		return perimeter_chars
+
 
 def boardstate_recursive_fill(boardstate, x, y, symbol):
 	boardstate[y][x] = symbol
